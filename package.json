@@ -1,0 +1,41 @@
+{
+    "name": "car2hand-cron-job",
+    "version": "1.0.0",
+    "description": "A TypeScript cron job that monitors Google Sheets and sends LINE notifications",
+    "main": "dist/index.js",
+    "scripts": {
+        "build": "tsc",
+        "start": "node dist/index.js",
+        "dev": "ts-node src/index.ts",
+        "test": "ts-node src/test.ts",
+        "watch": "tsc --watch",
+        "clean": "rm -rf dist",
+        "job1": "node dist/job1.js",
+        "job2": "node dist/job2.js",
+        "job3": "node dist/job3.js",
+        "run-job": "node dist/index.js"
+    },
+    "keywords": [
+        "cron",
+        "google-sheets",
+        "line",
+        "typescript",
+        "railway"
+    ],
+    "author": "",
+    "license": "MIT",
+    "dependencies": {
+        "googleapis": "^128.0.0",
+        "@line/bot-sdk": "^8.0.2",
+        "axios": "^1.5.0",
+        "dotenv": "^16.3.1"
+    },
+    "devDependencies": {
+        "@types/node": "^20.8.0",
+        "typescript": "^5.2.2",
+        "ts-node": "^10.9.1"
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    }
+}
