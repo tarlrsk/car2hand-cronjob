@@ -1,14 +1,20 @@
 import { Logger } from "./log/logger";
 import { NotifyOverdueStockVehiclesService } from "./job/notify-overdue-stock-vehicles";
+import { NotifyVehiclesNearTaxDeadlineService } from "./job/notify-vehicles-near-tax-deadline";
 
 // Main execution function
 async function main(): Promise<void> {
   const notifyOverdueStockVehicles = new NotifyOverdueStockVehiclesService();
+  const notifyVehiclesNearTaxDeadline =
+    new NotifyVehiclesNearTaxDeadlineService();
   const logger = new Logger();
 
   try {
     await notifyOverdueStockVehicles.initialize();
     await notifyOverdueStockVehicles.executeJob();
+
+    await notifyVehiclesNearTaxDeadline.initialize();
+    await notifyVehiclesNearTaxDeadline.executeJob();
 
     logger.info("Cron job completed successfully");
   } catch (error) {

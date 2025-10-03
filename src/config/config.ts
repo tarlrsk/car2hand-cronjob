@@ -14,7 +14,7 @@ export const config: Config = {
 };
 
 export function validateConfig(): void {
-  const requiredFields: (keyof Omit<Config, "jobs">)[] = [
+  const requiredFields: (keyof Config)[] = [
     "googleSheetId",
     "googleSheetNameJob1",
     "googleCredentials",

@@ -5,14 +5,11 @@
     "main": "dist/index.js",
     "scripts": {
         "build": "tsc",
-        "start": "node dist/index.js",
+        "start": "tsc && node dist/index.js",
         "dev": "ts-node src/index.ts",
         "test": "ts-node src/test.ts",
         "watch": "tsc --watch",
         "clean": "rm -rf dist",
-        "job1": "npm run build && node dist/job1.js",
-        "job2": "node dist/job2.js",
-        "job3": "node dist/job3.js",
         "run-job": "node dist/index.js"
     },
     "keywords": [

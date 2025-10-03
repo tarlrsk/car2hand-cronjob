@@ -2,8 +2,8 @@ import { config, validateConfig } from "../config/config";
 import { GoogleSheetsService } from "../service/google-sheets-service";
 import { LineService } from "../service/line-service";
 import { Logger } from "../log/logger";
-import { NotificationData, JobConfig } from "../types/types";
-import { parse, isValid } from "date-fns";
+import { NotificationData } from "../types/types";
+import { parseDate } from "../util/date";
 
 const JOB_NAME = "notify-overdue-stock-vehicles";
 
@@ -71,9 +71,10 @@ export class NotifyOverdueStockVehiclesService {
         }
 
         // Parse the stock date
-        const inStockDate = this.parseStockDate(inStockDateValue);
+        const inStockDate = parseDate(inStockDateValue);
         if (!inStockDate) {
           this.logger.warn("Invalid stock date format", {
+            jobName: JOB_NAME,
             rowIndex: row.rowIndex,
             dateValue: inStockDateValue,
           });
@@ -142,52 +143,6 @@ export class NotifyOverdueStockVehiclesService {
     return years * 12 + months;
   }
 
-  private parseStockDate(dateValue: string | number): Date | null {
-    if (!dateValue) {
-      return null;
-    }
-
-    // Convert to string if it's a number
-    const dateStr = String(dateValue).trim();
-
-    // Common date formats to try with date-fns
-    const formats = [
-      "dd/M/yy", // 18/7/25
-      "dd/MM/yy", // 18/07/25
-      "dd/M/yyyy", // 18/7/2025
-      "dd/MM/yyyy", // 18/07/2025
-      "dd-M-yy", // 18-7-25
-      "dd-MM-yy", // 18-07-25
-      "dd-M-yyyy", // 18-7-2025
-      "dd-MM-yyyy", // 18-07-2025
-      "yyyy-MM-dd", // 2025-07-18 (ISO)
-      "MM/dd/yyyy", // 07/18/2025 (US format)
-    ];
-
-    // Try each format
-    for (const format of formats) {
-      try {
-        // Use current date as reference for relative parsing (helps with 2-digit years)
-        const parsedDate = parse(dateStr, format, new Date());
-
-        if (isValid(parsedDate)) {
-          return parsedDate;
-        }
-      } catch (error) {
-        // Continue to next format
-        continue;
-      }
-    }
-
-    // Fallback: try JavaScript's default parsing
-    const defaultDate = new Date(dateStr);
-    if (isValid(defaultDate)) {
-      return defaultDate;
-    }
-
-    return null;
-  }
-
   private cleanText(text: string): string {
     if (!text || text === "N/A") {
       return text;
@@ -195,10 +150,10 @@ export class NotifyOverdueStockVehiclesService {
 
     // Remove all types of newlines and extra whitespace, replace with separator
     return text
-      .replace(/\r\n/g, "  ") // Windows line endings
-      .replace(/\n/g, "  ") // Unix line endings
-      .replace(/\r/g, "  ") // Mac line endings
-      .replace(/\s+/g, "  ") // Multiple spaces/tabs to single space
+      .replace(/\r\n/g, " ") // Windows line endings
+      .replace(/\n/g, " ") // Unix line endings
+      .replace(/\r/g, " ") // Mac line endings
+      .replace(/\s+/g, " ") // Multiple spaces/tabs to single space
       .trim(); // Remove leading/trailing whitespace
   }
 
