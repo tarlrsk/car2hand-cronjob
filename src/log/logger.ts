@@ -1,33 +1,35 @@
+import { createLogger, format, transports } from "winston";
 import { LoggerInterface } from "../types/types";
 
+const orderedJsonFormat = format((info) => {
+  const { timestamp, level, message, ...rest } = info;
+
+  info[Symbol.for("message")] = JSON.stringify({
+    timestamp,
+    level,
+    message,
+    ...rest,
+  });
+
+  return info;
+});
+
+const logger = createLogger({
+  level: "info",
+  format: format.combine(format.timestamp(), orderedJsonFormat()),
+  transports: [new transports.Console()],
+});
+
 export class Logger implements LoggerInterface {
-  private formatMessage(
-    level: string,
-    message: string,
-    meta?: Record<string, unknown>
-  ): string {
-    const timestamp = new Date().toISOString();
-    const baseLog = `[${timestamp}] ${level.toUpperCase()}: ${message}`;
-
-    if (meta && Object.keys(meta).length > 0) {
-      return `${baseLog} | Meta: ${JSON.stringify(meta)}`;
-    }
-
-    return baseLog;
-  }
-
   info(message: string, meta?: Record<string, unknown>): void {
-    console.log(this.formatMessage("info", message, meta));
+    logger.info(message, meta);
   }
 
   error(message: string, error?: Error, meta?: Record<string, unknown>): void {
-    const errorMeta = error
-      ? { ...meta, error: error.message, stack: error.stack }
-      : meta;
-    console.error(this.formatMessage("error", message, errorMeta));
+    logger.error(message, { error: error?.message, ...meta });
   }
 
   warn(message: string, meta?: Record<string, unknown>): void {
-    console.warn(this.formatMessage("warn", message, meta));
+    logger.warn(message, meta);
   }
 }

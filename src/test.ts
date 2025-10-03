@@ -1,6 +1,6 @@
 import { config, validateConfig } from "./config/config";
-import { GoogleSheetsService } from "./service/googleSheetsService";
-import { LineService } from "./service/lineService";
+import { GoogleSheetsService } from "./service/google-sheets-service";
+import { LineService } from "./service/line-service";
 import { Logger } from "./log/logger";
 
 async function testServices(): Promise<void> {

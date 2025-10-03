@@ -1,18 +1,15 @@
 export interface JobConfig {
   name: string;
-  columnIndex: number;
-  thresholdValue: number;
-  schedule: string;
-  description?: string;
 }
 
 export interface Config {
   googleSheetId: string;
+  googleSheetNameJob1: string;
+  googleSheetNameJob2: string;
   googleCredentials: string;
   lineChannelAccessToken: string;
   lineUserId: string;
   nodeEnv: string;
-  jobs: JobConfig[];
 }
 
 export interface SheetRow {
@@ -21,16 +18,12 @@ export interface SheetRow {
 }
 
 export interface NotificationData {
-  value: number;
-  rowIndex: number;
-  currentTime: string;
-  jobName: string;
-  columnIndex: number;
-  threshold: number;
+  receiverId: string;
+  message: string;
 }
 
 export interface GoogleSheetsServiceInterface {
-  readSheet(): Promise<SheetRow[]>;
+  readSheet(sheetName?: string): Promise<SheetRow[]>;
 }
 
 export interface LineServiceInterface {

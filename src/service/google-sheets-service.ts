@@ -31,15 +31,18 @@ export class GoogleSheetsService implements GoogleSheetsServiceInterface {
     }
   }
 
-  async readSheet(): Promise<SheetRow[]> {
+  async readSheet(sheetName: string): Promise<SheetRow[]> {
     try {
+      const targetSheetName = sheetName;
+
       this.logger.info("Starting to read Google Sheet", {
         sheetId: config.googleSheetId,
+        sheetName: targetSheetName,
       });
 
       const response = await this.sheets.spreadsheets.values.get({
         spreadsheetId: config.googleSheetId,
-        range: "A:Z", // Read all columns
+        range: `${targetSheetName}!A:Z`, // Specify sheet name with range
       });
 
       const rows = response.data.values;
@@ -67,45 +70,6 @@ export class GoogleSheetsService implements GoogleSheetsServiceInterface {
       throw new Error(
         `Failed to read Google Sheet: ${(error as Error).message}`
       );
-    }
-  }
-
-  async getColumnValues(
-    columnIndex: number
-  ): Promise<Array<{ value: number; rowIndex: number }>> {
-    try {
-      const rows = await this.readSheet();
-      const columnValues: Array<{ value: number; rowIndex: number }> = [];
-
-      for (const row of rows) {
-        const cellValue = row.values[columnIndex];
-
-        if (cellValue !== undefined && cellValue !== null && cellValue !== "") {
-          const numericValue =
-            typeof cellValue === "number"
-              ? cellValue
-              : parseFloat(String(cellValue));
-
-          if (!isNaN(numericValue)) {
-            columnValues.push({
-              value: numericValue,
-              rowIndex: row.rowIndex,
-            });
-          }
-        }
-      }
-
-      this.logger.info("Extracted column values", {
-        columnIndex,
-        validValues: columnValues.length,
-      });
-
-      return columnValues;
-    } catch (error) {
-      this.logger.error("Failed to get column values", error as Error, {
-        columnIndex,
-      });
-      throw error;
     }
   }
 }
