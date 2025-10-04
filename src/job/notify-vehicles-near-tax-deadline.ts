@@ -5,7 +5,7 @@ import { MongoDbService } from "../service/mongodb-service";
 import { Logger } from "../log/logger";
 import { NotificationData } from "../types/types";
 import { differenceInDays } from "date-fns";
-import { parseDate } from "../util/date";
+import { parseDate, getNowInLocal } from "../util/date";
 
 const JOB_NAME = "notify-vehicles-near-tax-deadline";
 
@@ -96,7 +96,7 @@ export class NotifyVehiclesNearTaxDeadlineService {
           continue;
         }
 
-        const now = new Date();
+        const now = getNowInLocal();
         const daysUntilExpiry = differenceInDays(expiryDate, now);
 
         // Check if vehicle needs tax renewal within 60 days

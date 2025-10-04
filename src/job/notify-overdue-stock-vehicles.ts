@@ -4,7 +4,7 @@ import { LineService } from "../service/line-service";
 import { MongoDbService } from "../service/mongodb-service";
 import { Logger } from "../log/logger";
 import { NotificationData } from "../types/types";
-import { parseDate } from "../util/date";
+import { parseDate, getNowInLocal, createLocalDate } from "../util/date";
 
 const JOB_NAME = "notify-overdue-stock-vehicles";
 
@@ -89,7 +89,7 @@ export class NotifyOverdueStockVehiclesService {
           continue;
         }
 
-        const now = new Date();
+        const now = getNowInLocal();
 
         // Calculate months since stock date
         const monthsSinceStock = this.getMonthsDifference(inStockDate, now);
@@ -183,7 +183,7 @@ export class NotifyOverdueStockVehiclesService {
     const currentYear = currentDate.getFullYear();
 
     // Get the last day of current month to handle edge cases
-    const lastDayOfCurrentMonth = new Date(
+    const lastDayOfCurrentMonth = createLocalDate(
       currentYear,
       currentMonth + 1,
       0

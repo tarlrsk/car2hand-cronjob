@@ -1,4 +1,22 @@
 import { parse, isValid } from "date-fns";
+import { toZonedTime, fromZonedTime, format } from "date-fns-tz";
+import { config } from "../config/config";
+
+// Local timezone utilities
+export function getNowInLocal(): Date {
+  return toZonedTime(new Date(), config.timezone);
+}
+
+export function createLocalDate(
+  year: number,
+  month: number,
+  day: number,
+  hour: number = 0,
+  minute: number = 0
+): Date {
+  const localDate = new Date(year, month - 1, day, hour, minute);
+  return fromZonedTime(localDate, config.timezone);
+}
 
 export function parseDate(dateValue: string | number): Date | null {
   if (!dateValue) {
@@ -25,11 +43,13 @@ export function parseDate(dateValue: string | number): Date | null {
   // Try each format
   for (const format of formats) {
     try {
-      // Use current date as reference for relative parsing (helps with 2-digit years)
-      const parsedDate = parse(dateStr, format, new Date());
+      // Use local time as reference for relative parsing
+      const referenceDate = getNowInLocal();
+      const parsedDate = parse(dateStr, format, referenceDate);
 
       if (isValid(parsedDate)) {
-        return parsedDate;
+        // Convert to local timezone
+        return fromZonedTime(parsedDate, config.timezone);
       }
     } catch (error) {
       // Continue to next format
@@ -37,10 +57,10 @@ export function parseDate(dateValue: string | number): Date | null {
     }
   }
 
-  // Fallback: try JavaScript's default parsing
+  // Fallback: try JavaScript's default parsing and convert to local timezone
   const defaultDate = new Date(dateStr);
   if (isValid(defaultDate)) {
-    return defaultDate;
+    return fromZonedTime(defaultDate, config.timezone);
   }
 
   return null;

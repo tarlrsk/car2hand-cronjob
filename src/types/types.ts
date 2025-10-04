@@ -10,6 +10,7 @@ export interface Config {
   mongoConnectionString: string;
   mongoDatabase: string;
   nodeEnv: string;
+  timezone: string;
 }
 
 export interface SheetRow {
