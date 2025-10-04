@@ -1,6 +1,7 @@
 import { config, validateConfig } from "../config/config";
 import { GoogleSheetsService } from "../service/google-sheets-service";
 import { LineService } from "../service/line-service";
+import { MongoDbService } from "../service/mongodb-service";
 import { Logger } from "../log/logger";
 import { NotificationData } from "../types/types";
 import { differenceInDays } from "date-fns";
@@ -20,30 +21,29 @@ interface VehicleTaxInfo {
 export class NotifyVehiclesNearTaxDeadlineService {
   private googleSheetsService: GoogleSheetsService;
   private lineService: LineService;
+  private mongoDbService: MongoDbService;
   private logger: Logger;
 
-  constructor() {
+  constructor(mongoDbService: MongoDbService) {
     this.logger = new Logger();
     this.googleSheetsService = new GoogleSheetsService();
     this.lineService = new LineService();
+    this.mongoDbService = mongoDbService;
   }
 
   async initialize(): Promise<void> {
     try {
-      this.logger.info("Initializing cron job service...");
+      this.logger.info(
+        "Initializing notify-vehicles-near-tax-deadline cron job service..."
+      );
 
       // Validate configuration
       validateConfig();
-      this.logger.info("Configuration validated successfully");
 
       const isLineConnected = await this.lineService.validateConnection();
       if (!isLineConnected) {
         throw new Error("LINE service connection failed");
       }
-
-      this.logger.info(
-        "Notify Vehicles Near Tax Deadlines Cron job service initialized successfully"
-      );
     } catch (error) {
       this.logger.error(
         "Failed to initialize cron job service",
@@ -59,8 +59,15 @@ export class NotifyVehiclesNearTaxDeadlineService {
         jobName: JOB_NAME,
       });
 
+      const jobConfig = await this.mongoDbService.getJobConfigByJobName(
+        JOB_NAME
+      );
+      if (!jobConfig) {
+        return;
+      }
+
       const sheet = await this.googleSheetsService.readSheet(
-        config.googleSheetNameJob2
+        jobConfig.sheetName
       );
 
       const expiresDateIdx = 8;
@@ -70,7 +77,8 @@ export class NotifyVehiclesNearTaxDeadlineService {
 
       const vehiclesNearDeadline: VehicleTaxInfo[] = [];
 
-      for (const row of sheet) {
+      // Start from row index 1 (skip header row)
+      for (const row of sheet.slice(1)) {
         const expiryDateValue = row.values[expiresDateIdx];
 
         if (!expiryDateValue) {
@@ -119,7 +127,10 @@ export class NotifyVehiclesNearTaxDeadlineService {
 
       // Send single consolidated notification if there are vehicles near deadline
       if (vehiclesNearDeadline.length > 0) {
-        await this.processTaxDeadlineNotification(vehiclesNearDeadline);
+        await this.processTaxDeadlineNotification(
+          jobConfig.receiverLineIds,
+          vehiclesNearDeadline
+        );
       } else {
         this.logger.info("No vehicles near tax deadline", {
           jobName: JOB_NAME,
@@ -148,6 +159,7 @@ export class NotifyVehiclesNearTaxDeadlineService {
   }
 
   private async processTaxDeadlineNotification(
+    receiverIds: string[],
     vehicles: VehicleTaxInfo[]
   ): Promise<void> {
     try {
@@ -170,7 +182,7 @@ export class NotifyVehiclesNearTaxDeadlineService {
       });
 
       const notificationData: NotificationData = {
-        receiverId: config.lineUserId,
+        receiverIds: receiverIds,
         message: message,
       };
 

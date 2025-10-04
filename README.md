@@ -35,18 +35,56 @@ A TypeScript-based cron job that monitors Google Sheets for values below a thres
 4. Get your Channel Access Token
 5. Get your User ID (you can get this by messaging your bot)
 
-### 3. Environment Variables
+### 3. MongoDB Setup
+
+For multi-user notifications, the system uses MongoDB to manage job-specific user lists:
+
+1. **Install MongoDB** (if running locally):
+
+   ```bash
+   # macOS
+   brew install mongodb-community
+   # Or use MongoDB Atlas for cloud hosting
+   ```
+
+2. **Database Structure**:
+
+   - Database: `car2hand` (configurable)
+   - Collection: `jobUserConfigs`
+   - Document format:
+
+   ```json
+   {
+     "_id": "ObjectId",
+     "jobName": "notify-overdue-stock-vehicles",
+     "userIds": ["LINE_USER_ID_1", "LINE_USER_ID_2"],
+     "lastUpdated": "2024-01-01T00:00:00.000Z"
+   }
+   ```
+
+3. **Managing Users**:
+   - Use MongoDB client or GUI tools to add/remove users
+   - Each job can have different user lists
+   - Users will receive notifications for their assigned jobs only
+
+### 4. Environment Variables
 
 Set these environment variables in Railway:
 
 ```bash
 # Google Sheets Configuration
 GOOGLE_SHEET_ID=your_google_sheet_id_here
+GOOGLE_SHEET_NAME_JOB_1=stock
+GOOGLE_SHEET_NAME_JOB_2=tax
 GOOGLE_CREDENTIALS_JSON={"type":"service_account","project_id":"..."}
 
 # LINE Official Account Configuration
 LINE_CHANNEL_ACCESS_TOKEN=your_line_channel_access_token
 LINE_USER_ID=your_line_user_id_to_send_notifications
+
+# MongoDB Configuration
+MONGO_CONNECTION_STRING=mongodb://localhost:27017
+MONGO_DATABASE=car2hand
 
 # Multiple Jobs Configuration (JSON format)
 JOBS_CONFIG=[{"name":"default-monitor","columnIndex":0,"thresholdValue":90,"schedule":"*/30 * * * *","description":"Default monitoring job"},{"name":"secondary-monitor","columnIndex":1,"thresholdValue":85,"schedule":"*/15 * * * *","description":"Secondary column monitoring"},{"name":"additional-monitor","columnIndex":2,"thresholdValue":95,"schedule":"0 */2 * * *","description":"Additional monitoring every 2 hours"}]
@@ -60,23 +98,22 @@ DEFAULT_SCHEDULE=*/30 * * * *
 NODE_ENV=production
 ```
 
-### 4. Railway Deployment
+### 5. Railway Deployment
 
 1. Connect your GitHub repository to Railway
 2. Set the environment variables in Railway dashboard
 3. Railway will automatically build and deploy your cron job
-4. Configure multiple cron schedules in Railway dashboard:
+4. Configure cron schedules in Railway dashboard:
 
-**Multiple Cron Jobs Setup:**
+**Cron Jobs Setup:**
 
-- **Job 1 (Default Monitor)**: Schedule `*/30 * * * *`, Command: `npm run job1`
-- **Job 2 (Secondary Monitor)**: Schedule `*/15 * * * *`, Command: `npm run job2`
-- **Job 3 (Additional Monitor)**: Schedule `0 */2 * * *`, Command: `npm run job3`
+- **Stock Notifications**: Schedule `0 9 * * *` (daily at 9 AM), Command: `node dist/job1.js`
+- **Tax Deadline Notifications**: Schedule `0 10 * * *` (daily at 10 AM), Command: `node dist/job2.js`
 
-**Alternative Single Job Setup:**
+**Job Names for MongoDB:**
 
-- **All Jobs**: Schedule as needed, Command: `npm start` (runs all jobs)
-- **Specific Job**: Schedule as needed, Command: `npm run run-job job-name`
+- Stock notifications: `notify-overdue-stock-vehicles`
+- Tax deadline notifications: `notify-vehicles-near-tax-deadline`
 
 ## Project Structure
 

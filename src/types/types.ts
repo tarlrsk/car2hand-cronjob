@@ -4,11 +4,11 @@ export interface JobConfig {
 
 export interface Config {
   googleSheetId: string;
-  googleSheetNameJob1: string;
-  googleSheetNameJob2: string;
   googleCredentials: string;
   lineChannelAccessToken: string;
   lineUserId: string;
+  mongoConnectionString: string;
+  mongoDatabase: string;
   nodeEnv: string;
 }
 
@@ -18,7 +18,7 @@ export interface SheetRow {
 }
 
 export interface NotificationData {
-  receiverId: string;
+  receiverIds: string[];
   message: string;
 }
 
@@ -28,6 +28,7 @@ export interface GoogleSheetsServiceInterface {
 
 export interface LineServiceInterface {
   sendNotification(data: NotificationData): Promise<void>;
+  sendToMultipleUsers(userIds: string[], message: string): Promise<void>;
 }
 
 export interface LoggerInterface {

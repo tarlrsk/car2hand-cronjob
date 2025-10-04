@@ -1,6 +1,7 @@
 import { config, validateConfig } from "../config/config";
 import { GoogleSheetsService } from "../service/google-sheets-service";
 import { LineService } from "../service/line-service";
+import { MongoDbService } from "../service/mongodb-service";
 import { Logger } from "../log/logger";
 import { NotificationData } from "../types/types";
 import { parseDate } from "../util/date";
@@ -10,30 +11,29 @@ const JOB_NAME = "notify-overdue-stock-vehicles";
 export class NotifyOverdueStockVehiclesService {
   private googleSheetsService: GoogleSheetsService;
   private lineService: LineService;
+  private mongoDbService: MongoDbService;
   private logger: Logger;
 
-  constructor() {
+  constructor(mongoDbService: MongoDbService) {
     this.logger = new Logger();
     this.googleSheetsService = new GoogleSheetsService();
     this.lineService = new LineService();
+    this.mongoDbService = mongoDbService;
   }
 
   async initialize(): Promise<void> {
     try {
-      this.logger.info("Initializing cron job service...");
+      this.logger.info(
+        "Initializing notify-overdue-stock-vehicles cron job service..."
+      );
 
       // Validate configuration
       validateConfig();
-      this.logger.info("Configuration validated successfully");
 
       const isLineConnected = await this.lineService.validateConnection();
       if (!isLineConnected) {
         throw new Error("LINE service connection failed");
       }
-
-      this.logger.info(
-        "Notify Overdue Stock Vehicles Cron job service initialized successfully"
-      );
     } catch (error) {
       this.logger.error(
         "Failed to initialize cron job service",
@@ -49,8 +49,15 @@ export class NotifyOverdueStockVehiclesService {
         jobName: JOB_NAME,
       });
 
+      const jobConfig = await this.mongoDbService.getJobConfigByJobName(
+        JOB_NAME
+      );
+      if (!jobConfig) {
+        return;
+      }
+
       const sheet = await this.googleSheetsService.readSheet(
-        config.googleSheetNameJob1
+        jobConfig.sheetName
       );
 
       const inStockDateIdx = 5;
@@ -63,7 +70,8 @@ export class NotifyOverdueStockVehiclesService {
 
       const notificationsToSend = [];
 
-      for (const row of sheet) {
+      // Start from row index 2 (skip header row)
+      for (const row of sheet.slice(2)) {
         const inStockDateValue = row.values[inStockDateIdx];
 
         if (!inStockDateValue) {
@@ -121,7 +129,10 @@ export class NotifyOverdueStockVehiclesService {
 
       // Send notifications
       for (const notification of notificationsToSend) {
-        await this.processOverdueStockNotification(notification);
+        await this.processOverdueStockNotification(
+          jobConfig.receiverLineIds,
+          notification
+        );
       }
 
       if (notificationsToSend.length === 0) {
@@ -195,31 +206,37 @@ export class NotifyOverdueStockVehiclesService {
     return false;
   }
 
-  private async processOverdueStockNotification(notification: {
-    rowIndex: number;
-    inStockDate: Date;
-    monthsSinceStock: number;
-    vehicleInfo: {
-      licensePlate: string;
-      make: string;
-      model: string;
-      year: string;
-      campaign: string;
-      price: string;
-    };
-  }): Promise<void> {
+  private async processOverdueStockNotification(
+    receiverIds: string[],
+    notification: {
+      rowIndex: number;
+      inStockDate: Date;
+      monthsSinceStock: number;
+      vehicleInfo: {
+        licensePlate: string;
+        make: string;
+        model: string;
+        year: string;
+        campaign: string;
+        price: string;
+      };
+    }
+  ): Promise<void> {
     try {
       // Create a detailed message for overdue stock notification
-      const vehicleDetails = `
-แจ้งเตือนรถค้างสต็อคเกิน 60 วัน 
-${notification.vehicleInfo.make} ${notification.vehicleInfo.model} ${notification.vehicleInfo.year}
-ป้ายทะเบียน: ${notification.vehicleInfo.licensePlate}
+      const message = `แจ้งเตือนรถค้างสต็อคเกิน ${
+        notification.monthsSinceStock * 30
+      } วัน ${notification.vehicleInfo.make} ${
+        notification.vehicleInfo.model
+      } ${notification.vehicleInfo.year} - ${
+        notification.vehicleInfo.licensePlate
+      }
 ราคา: ${notification.vehicleInfo.price}
 แคมเปญ: ${notification.vehicleInfo.campaign}`.trim();
 
       const notificationData: NotificationData = {
-        receiverId: config.lineUserId,
-        message: vehicleDetails,
+        receiverIds: receiverIds,
+        message: message,
       };
 
       await this.lineService.sendNotification(notificationData);
