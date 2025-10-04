@@ -69,9 +69,6 @@ npm install
 # Run in development mode (all jobs)
 npm run dev
 
-# Test services configuration
-npm test
-
 # Build for production
 npm run build
 
