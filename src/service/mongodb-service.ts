@@ -6,6 +6,7 @@ export interface JobConfig {
   _id?: string;
   jobName: string;
   receiverLineIds: string[];
+  groupLineIds: string[];
   sheetName: string;
   isActive: boolean;
 }

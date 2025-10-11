@@ -22,18 +22,30 @@ export class LineService implements LineServiceInterface {
       this.logger.info("Sending LINE notification", {
         userIds: data.receiverIds,
         userCount: data.receiverIds.length,
+        groupIds: data.groupIds || [],
+        groupCount: data.groupIds?.length || 0,
       });
 
-      // Multiple users - use multicast
-      await this.sendToMultipleUsers(data.receiverIds, data.message);
+      // Send to users if any
+      if (data.receiverIds.length > 0) {
+        await this.sendToMultipleUsers(data.receiverIds, data.message);
+      }
+
+      // Send to groups if any
+      if (data.groupIds && data.groupIds.length > 0) {
+        await this.sendToGroups(data.groupIds, data.message);
+      }
 
       this.logger.info("LINE notification sent successfully", {
         userIds: data.receiverIds,
         userCount: data.receiverIds.length,
+        groupIds: data.groupIds || [],
+        groupCount: data.groupIds?.length || 0,
       });
     } catch (error) {
       this.logger.error("Failed to send LINE notification", error as Error, {
         receiverId: data.receiverIds,
+        groupIds: data.groupIds || [],
       });
       throw new Error(
         `Failed to send LINE notification: ${(error as Error).message}`
@@ -79,6 +91,40 @@ export class LineService implements LineServiceInterface {
       );
       throw new Error(
         `Failed to send message to multiple users: ${(error as Error).message}`
+      );
+    }
+  }
+
+  async sendToGroups(groupIds: string[], message: string): Promise<void> {
+    try {
+      this.logger.info("Sending message to groups", {
+        groupCount: groupIds.length,
+      });
+
+      if (groupIds.length === 0) {
+        this.logger.warn("No group IDs provided for sending message");
+        return;
+      }
+
+      // Send to each group individually using push message
+      for (const groupId of groupIds) {
+        await this.client.pushMessage({
+          to: groupId,
+          messages: [{ type: "text", text: message }],
+        });
+
+        this.logger.info(`Sent message to group`, { groupId });
+      }
+
+      this.logger.info(`Successfully sent message to all groups`, {
+        totalGroups: groupIds.length,
+      });
+    } catch (error) {
+      this.logger.error("Failed to send message to groups", error as Error, {
+        groupCount: groupIds.length,
+      });
+      throw new Error(
+        `Failed to send message to groups: ${(error as Error).message}`
       );
     }
   }

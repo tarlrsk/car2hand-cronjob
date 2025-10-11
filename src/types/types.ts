@@ -20,6 +20,7 @@ export interface SheetRow {
 
 export interface NotificationData {
   receiverIds: string[];
+  groupIds?: string[];
   message: string;
 }
 
@@ -30,6 +31,7 @@ export interface GoogleSheetsServiceInterface {
 export interface LineServiceInterface {
   sendNotification(data: NotificationData): Promise<void>;
   sendToMultipleUsers(userIds: string[], message: string): Promise<void>;
+  sendToGroups(groupIds: string[], message: string): Promise<void>;
 }
 
 export interface LoggerInterface {

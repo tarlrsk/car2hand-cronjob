@@ -43,8 +43,30 @@ MONGO_DATABASE=car2hand
 ## How It Works
 
 1. **Stock Notifications**: Checks vehicles in stock ≥ 2 months, sends monthly reminders
-2. **Tax Notifications**: Finds vehicles with tax expiring ≤ 60 days
+2. **Tax Notifications**: Finds vehicles with tax expiring ≤ 60 days, limited to 30 cars per message
 3. **Multi-User**: Each job type can have different LINE user lists stored in MongoDB
+4. **Group Support**: Can send notifications to both individual users and LINE groups
+
+## User & Group Management
+
+**Database Configuration:**
+
+```json
+{
+  "jobName": "notify-overdue-stock-vehicles",
+  "receiverLineIds": ["USER_ID_1", "USER_ID_2"],
+  "groupLineGroupIds": ["GROUP_ID_1", "GROUP_ID_2"],
+  "sheetName": "stock",
+  "isActive": true
+}
+```
+
+**Features:**
+
+- **Individual Users**: Add LINE user IDs to `receiverLineIds`
+- **Groups**: Add LINE group IDs to `groupLineGroupIds`
+- **Per Job**: Each notification job can have different recipients
+- **Message Splitting**: Tax notifications split into 30-car chunks if needed
 
 ## Deployment
 

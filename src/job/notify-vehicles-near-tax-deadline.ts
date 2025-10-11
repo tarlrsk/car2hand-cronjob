@@ -129,6 +129,7 @@ export class NotifyVehiclesNearTaxDeadlineService {
       if (vehiclesNearDeadline.length > 0) {
         await this.processTaxDeadlineNotification(
           jobConfig.receiverLineIds,
+          jobConfig.groupLineIds,
           vehiclesNearDeadline
         );
       } else {
@@ -160,44 +161,70 @@ export class NotifyVehiclesNearTaxDeadlineService {
 
   private async processTaxDeadlineNotification(
     receiverIds: string[],
+    groupIds: string[],
     vehicles: VehicleTaxInfo[]
   ): Promise<void> {
     try {
-      // Create consolidated message for all vehicles
-      let message = `แจ้งเตือนรถที่ต้องต่อภาษีภายใน 60 วัน`;
+      const CARS_PER_MESSAGE = 30;
+      const totalVehicles = vehicles.length;
+      const totalMessages = Math.ceil(totalVehicles / CARS_PER_MESSAGE);
 
-      vehicles.forEach((vehicle, index) => {
-        const carNumber = index + 1;
-        const formattedDate = vehicle.expiryDate.toLocaleDateString("th-TH", {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
+      // Split vehicles into chunks of 30
+      for (let messageIndex = 0; messageIndex < totalMessages; messageIndex++) {
+        const startIndex = messageIndex * CARS_PER_MESSAGE;
+        const endIndex = Math.min(startIndex + CARS_PER_MESSAGE, totalVehicles);
+        const vehiclesBatch = vehicles.slice(startIndex, endIndex);
+
+        // Create message header with batch info
+        let message = `แจ้งเตือนรถที่ต้องต่อภาษีภายใน 60 วัน`;
+
+        if (totalMessages > 1) {
+          message += ` (ข้อความที่ ${messageIndex + 1}/${totalMessages})`;
+        }
+
+        // Add vehicles to message
+        vehiclesBatch.forEach((vehicle, index) => {
+          const carNumber = startIndex + index + 1; // Global car number across all messages
+          const formattedDate = vehicle.expiryDate.toLocaleDateString("th-TH", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+          });
+
+          message += `\n\nคันที่ ${carNumber}`;
+          message += `\nทะเบียนเก่า: ${vehicle.oldLicensePlate}`;
+          message += `\nทะเบียนใหม่: ${vehicle.newLicensePlate}`;
+          message += `\nรุ่น: ${vehicle.model}`;
+          message += `\nวันหมดอายุ: ${formattedDate}`;
         });
 
-        message += `\n\nคันที่ ${carNumber}`;
-        message += `\nทะเบียนเก่า: ${vehicle.oldLicensePlate}`;
-        message += `\nทะเบียนใหม่: ${vehicle.newLicensePlate}`;
-        message += `\nรุ่น: ${vehicle.model}`;
-        message += `\nวันหมดอายุ: ${formattedDate}`;
-      });
+        const notificationData: NotificationData = {
+          receiverIds: receiverIds,
+          groupIds: groupIds,
+          message: message,
+        };
 
-      const notificationData: NotificationData = {
-        receiverIds: receiverIds,
-        message: message,
-      };
+        await this.lineService.sendNotification(notificationData);
 
-      await this.lineService.sendNotification(notificationData);
+        this.logger.info("Tax deadline notification sent successfully", {
+          jobName: JOB_NAME,
+          messageNumber: messageIndex + 1,
+          totalMessages: totalMessages,
+          vehicleCount: vehiclesBatch.length,
+          totalVehicles: totalVehicles,
+          vehicles: vehiclesBatch.map((v) => ({
+            rowIndex: v.rowIndex,
+            oldLicensePlate: v.oldLicensePlate,
+            newLicensePlate: v.newLicensePlate,
+            daysUntilExpiry: v.daysUntilExpiry,
+          })),
+        });
 
-      this.logger.info("Tax deadline notification sent successfully", {
-        jobName: JOB_NAME,
-        vehicleCount: vehicles.length,
-        vehicles: vehicles.map((v) => ({
-          rowIndex: v.rowIndex,
-          oldLicensePlate: v.oldLicensePlate,
-          newLicensePlate: v.newLicensePlate,
-          daysUntilExpiry: v.daysUntilExpiry,
-        })),
-      });
+        // Add a small delay between messages to avoid rate limiting
+        if (messageIndex < totalMessages - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 1000)); // 1 second delay
+        }
+      }
     } catch (error) {
       this.logger.error(
         "Failed to process tax deadline notification",

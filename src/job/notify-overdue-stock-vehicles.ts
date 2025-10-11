@@ -131,6 +131,7 @@ export class NotifyOverdueStockVehiclesService {
       for (const notification of notificationsToSend) {
         await this.processOverdueStockNotification(
           jobConfig.receiverLineIds,
+          jobConfig.groupLineIds,
           notification
         );
       }
@@ -208,6 +209,7 @@ export class NotifyOverdueStockVehiclesService {
 
   private async processOverdueStockNotification(
     receiverIds: string[],
+    groupIds: string[],
     notification: {
       rowIndex: number;
       inStockDate: Date;
@@ -236,6 +238,7 @@ export class NotifyOverdueStockVehiclesService {
 
       const notificationData: NotificationData = {
         receiverIds: receiverIds,
+        groupIds: groupIds,
         message: message,
       };
 
