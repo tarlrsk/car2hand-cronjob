@@ -79,7 +79,7 @@ export class NotifyOverdueStockVehiclesService {
         }
 
         // Parse the stock date
-        const inStockDate = parseDate(inStockDateValue);
+        const inStockDate = parseDate(inStockDateValue, this.logger);
         if (!inStockDate) {
           this.logger.warn("Invalid stock date format", {
             jobName: JOB_NAME,
