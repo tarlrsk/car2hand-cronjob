@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 export const config: Config = {
-  googleSheetId: process.env.GOOGLE_SHEET_ID || "",
+  googleSheetId: process.env.GOOGLE_SHEETS_ID || "",
   googleCredentials: process.env.GOOGLE_CREDENTIALS_JSON || "",
   lineChannelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN || "",
   lineUserId: process.env.LINE_USER_ID || "",

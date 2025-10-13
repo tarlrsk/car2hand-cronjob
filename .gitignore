@@ -66,3 +66,4 @@ coverage/
 # Google credentials (should be in env vars)
 credentials.json
 service-account-key.json
+.vercel
