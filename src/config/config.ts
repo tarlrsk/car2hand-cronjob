@@ -11,7 +11,7 @@ export const config: Config = {
   mongoConnectionString: process.env.MONGO_CONNECTION_STRING || "",
   mongoDatabase: process.env.MONGO_DATABASE || "",
   nodeEnv: process.env.NODE_ENV || "development",
-  timezone: "Asia/Bangkok",
+  timezone: process.env.LOCAL_TZ || "Asia/Bangkok",
 };
 
 export function validateConfig(): void {
