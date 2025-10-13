@@ -1,17 +1,14 @@
 {
-    "version": 2,
-    "functions": {
-        "api/notify-overdue-stock.ts": {
-            "maxDuration": 300
-        },
-        "api/notify-tax-deadline.ts": {
-            "maxDuration": 300
-        },
-        "api/health.ts": {
-            "maxDuration": 10
-        }
+  "version": 2,
+  "functions": {
+    "api/notify-overdue-stock.ts": {
+      "maxDuration": 300
     },
-    "env": {
-        "NODE_ENV": "production"
+    "api/notify-tax-deadline.ts": {
+      "maxDuration": 300
+    },
+    "api/health.ts": {
+      "maxDuration": 10
     }
+  }
 }
