@@ -19,15 +19,13 @@ export function createLocalDate(
   return fromZonedTime(localDate, config.timezone);
 }
 
-export function parseDate(dateValue: string | number, l: Logger): Date | null {
+export function parseDate(dateValue: string | number): Date | null {
   if (!dateValue) {
     return null;
   }
 
   // Convert to string if it's a number
   const dateStr = String(dateValue).trim();
-
-  l.info("Parsing date str:", { dateStr });
 
   // Common date formats to try with date-fns
   const formats = [
@@ -50,21 +48,11 @@ export function parseDate(dateValue: string | number, l: Logger): Date | null {
       const referenceDate = getNowInLocal();
       const parsedDate = parse(dateStr, format, referenceDate);
 
-      l.info("Timezone", { timezone: config.timezone });
-      l.info("Parsing data format:", {
-        format,
-        dateStr,
-        referenceDate,
-        parsedDate,
-      });
-
       if (isValid(parsedDate)) {
-        l.info("Parsed date is valid:", { parsedDate });
         // Convert to local timezone
         return fromZonedTime(parsedDate, config.timezone);
       }
     } catch (error) {
-      l.error("error parsing date with format " + format, error as Error);
       continue;
     }
   }

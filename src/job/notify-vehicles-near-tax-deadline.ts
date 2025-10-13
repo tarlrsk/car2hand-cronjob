@@ -86,7 +86,7 @@ export class NotifyVehiclesNearTaxDeadlineService {
         }
 
         // Parse the expiry date
-        const expiryDate = parseDate(expiryDateValue, this.logger);
+        const expiryDate = parseDate(expiryDateValue);
         if (!expiryDate) {
           this.logger.warn("Invalid expiry date format", {
             jobName: JOB_NAME,
