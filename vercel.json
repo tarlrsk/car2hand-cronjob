@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "outputDirectory": ".",
   "functions": {
     "api/notify-overdue-stock.ts": {
       "maxDuration": 300

@@ -9,9 +9,7 @@
         "dev": "ts-node src/index.ts",
         "test": "ts-node src/test.ts",
         "watch": "tsc --watch",
-        "clean": "rm -rf dist",
-        "run-job": "node dist/index.js",
-        "api:dev": "vercel dev"
+        "clean": "rm -rf dist"
     },
     "keywords": [
         "cron",
