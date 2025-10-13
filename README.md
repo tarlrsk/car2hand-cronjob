@@ -28,7 +28,7 @@ A TypeScript cron job that monitors Google Sheets for vehicle data and sends not
 
 ```env
 # Google Sheets
-GOOGLE_SHEET_ID=your_sheet_id
+GOOGLE_SHEETS_ID=your_sheet_id
 GOOGLE_CREDENTIALS_JSON={"type":"service_account",...}
 
 # LINE Bot
