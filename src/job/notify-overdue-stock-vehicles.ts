@@ -128,15 +128,13 @@ export class NotifyOverdueStockVehiclesService {
       });
 
       // Send notifications
-      for (const notification of notificationsToSend) {
-        await this.processOverdueStockNotification(
+      if (notificationsToSend.length > 0) {
+        await this.sendCombinedOverdueStockNotification(
           jobConfig.receiverLineIds,
           jobConfig.groupLineIds,
-          notification
+          notificationsToSend
         );
-      }
-
-      if (notificationsToSend.length === 0) {
+      } else {
         this.logger.info("No overdue stock notifications needed", {
           jobName: JOB_NAME,
         });
@@ -207,10 +205,10 @@ export class NotifyOverdueStockVehiclesService {
     return false;
   }
 
-  private async processOverdueStockNotification(
+  private async sendCombinedOverdueStockNotification(
     receiverIds: string[],
     groupIds: string[],
-    notification: {
+    notifications: {
       rowIndex: number;
       inStockDate: Date;
       monthsSinceStock: number;
@@ -222,43 +220,74 @@ export class NotifyOverdueStockVehiclesService {
         campaign: string;
         price: string;
       };
-    }
+    }[]
   ): Promise<void> {
     try {
-      // Create a detailed message for overdue stock notification
-      const message = `แจ้งเตือนรถค้างสต็อคเกิน ${
-        notification.monthsSinceStock * 30
-      } วัน ${notification.vehicleInfo.make} ${
-        notification.vehicleInfo.model
-      } ${notification.vehicleInfo.year} - ${
-        notification.vehicleInfo.licensePlate
-      }
+      const batchSize = 30;
+      const totalVehicles = notifications.length;
+      const totalBatches = Math.ceil(totalVehicles / batchSize);
+
+      for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+        const startIndex = batchIndex * batchSize;
+        const endIndex = Math.min(startIndex + batchSize, totalVehicles);
+        const batchNotifications = notifications.slice(startIndex, endIndex);
+
+        // Create header for the message
+        let message = totalBatches > 1 
+          ? `แจ้งเตือนรถค้างสต็อค (${batchIndex + 1}/${totalBatches})\n\n`
+          : "แจ้งเตือนรถค้างสต็อค\n\n";
+
+        // Add each vehicle to the message
+        batchNotifications.forEach((notification, index) => {
+          const daysSinceStock = notification.monthsSinceStock * 30;
+          const vehicleMessage = `${notification.vehicleInfo.make} ${notification.vehicleInfo.model} ${notification.vehicleInfo.year} - ${notification.vehicleInfo.licensePlate}
+เกิน ${daysSinceStock} วัน
 ราคา: ${notification.vehicleInfo.price}
-แคมเปญ: ${notification.vehicleInfo.campaign}`.trim();
+แคมเปญ: ${notification.vehicleInfo.campaign}`;
 
-      const notificationData: NotificationData = {
-        receiverIds: receiverIds,
-        groupIds: groupIds,
-        message: message,
-      };
+          message += vehicleMessage;
+          
+          // Add extra line break between vehicles (except for the last one)
+          if (index < batchNotifications.length - 1) {
+            message += "\n\n";
+          }
+        });
 
-      await this.lineService.sendNotification(notificationData);
+        const notificationData: NotificationData = {
+          receiverIds: receiverIds,
+          groupIds: groupIds,
+          message: message.trim(),
+        };
 
-      this.logger.info("Overdue stock notification sent successfully", {
+        await this.lineService.sendNotification(notificationData);
+
+        this.logger.info("Overdue stock notification batch sent successfully", {
+          jobName: JOB_NAME,
+          batchNumber: batchIndex + 1,
+          totalBatches: totalBatches,
+          batchVehicleCount: batchNotifications.length,
+          totalVehicleCount: totalVehicles,
+          licensePlates: batchNotifications.map(n => n.vehicleInfo.licensePlate),
+        });
+
+        // Add a small delay between batches to avoid overwhelming the LINE API
+        if (batchIndex < totalBatches - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+
+      this.logger.info("All overdue stock notification batches sent successfully", {
         jobName: JOB_NAME,
-        rowIndex: notification.rowIndex,
-        monthsSinceStock: notification.monthsSinceStock,
-        licensePlate: notification.vehicleInfo.licensePlate,
-        inStockDate: notification.inStockDate.toISOString(),
+        totalVehicles: totalVehicles,
+        totalBatches: totalBatches,
       });
     } catch (error) {
       this.logger.error(
-        "Failed to process overdue stock notification",
+        "Failed to send combined overdue stock notification",
         error as Error,
         {
           jobName: JOB_NAME,
-          rowIndex: notification.rowIndex,
-          monthsSinceStock: notification.monthsSinceStock,
+          vehicleCount: notifications.length,
         }
       );
     }
